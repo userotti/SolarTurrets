@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Auto</title>
+    <link href="css/style.css" rel="stylesheet" />
+
+
+    
+
+    <script src="js/libs/stats.min.js"></script>
+    <script src="js/libs/pixi.js"></script>
+    <script src="js/libs/gamecore.min.js"></script>
+
+    <script src="js/smaatclasses.js"></script>
+    <script src="js/camera.js"></script>
+    <script src="js/gamescene.js"></script>
+    <script src="js/colorfuncs.js"></script> 
+    <script src="js/solarturrets.js"></script>
+
+
+    <script src="js/libs/jquery.min.js"></script>
+    <script src="js/libs/chance.js"></script>
+    <script src="js/libs/underscore.js"></script>
+    <script src="js/libs/autobahn.min.jgz"></script>
+    <script src="js/libs/raphael-min.js"></script>
+
+    
+    
+</head>
+
+<body>
+  <div id="loginscreen">
+
+   <div id="hud">
+
+       <div class="status-wrap">
+           <strong>Your ID:</strong> <span id="myid">Not Connected :(</span><br/><br/>
+
+           <strong>Sesh ID:</strong> <br/> <span id="session">No session yet</span>
+       </div>
+       <div class="login-wrap">
+           <h4>You Name?</h4>
+           <input id="name" />
+           <br/><br/>
+           <h4>Join a Room</h4>
+
+           <input id="room" value="lobby" />
+           <button id="join">Go!</button>
+       </div>
+
+       <div class="room-wrap" style="display: none">
+           <h4>No Room Set</h4>
+           <ul>
+
+           </ul>
+       </div>
+
+       <div class="chat-wrap" style="display: none">
+
+           <h4>Chat</h4>
+           <input type="text" id="chat-message" placeholder="Type a message" /><button id="chat">Send</button>
+           <br />
+           <br/>
+
+           <div id="chat-log" style="font-size: 11px">
+               <br/><br/>
+           </div>
+
+       </div>
+
+       <div class="log-wrap">
+
+           <h4>Log</h4>
+           <br/>
+           <div id="log" style=" color: #ccc; letter-spacing: 0.2em">
+               No Other Activity Yet. Invite someone to join.
+           </div>
+       </div>
+
+   </div>
+ </div>
+  
+
+   
+
+  <script src="main.js"> </script>
+  <script src="js/connection.js">  </script> 
+
+  <script>
+
+  solarturrets.connection.open();
+
+  </script>
+ 
+
+ 
+ 
+
+  
+   </body>
+</html>
