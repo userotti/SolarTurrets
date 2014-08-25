@@ -6,17 +6,14 @@ Solarturrets = function()
     this.currentscene = new Gamescene(this.stage);
 
 
-    if (document.location.origin == "file://") {
-        wsuri = "ws://127.0.0.1:8080";
-    } else {
-        wsuri = (window.location.protocol === "http:" ? "ws:" : "wss:") + "//" + document.location.host + ":8080";
-    }
-
-    this.connection = new autobahn.Connection({
-        url: wsuri,
-        realm: 'realm1'
-    });
-
+    this.room = null;
+    this.sub_id = null;
+    this.id = null;
+  //  this.name = null;
+   // this.pulse;
+  //  this.myid;
+    this.counter = 0;
+    this.players = [];
 
     
 
@@ -25,7 +22,7 @@ Solarturrets = function()
 
 Solarturrets.prototype.constructor = Solarturrets;
 
-//setup the PIXI renderer and Stage
+
 Solarturrets.prototype.setSession = function(session){
 
     console.log(session + "session");
@@ -34,7 +31,7 @@ Solarturrets.prototype.setSession = function(session){
 }    
  
 
-
+//setup the PIXI renderer and Stage
 Solarturrets.prototype.setupPIXI = function()
 {
     
@@ -85,13 +82,16 @@ Solarturrets.prototype.resize = function(){
 };
 
 
-Solarturrets.prototype.onevent = function(){
+
+
+
+Solarturrets.prototype.onevent = function(args){
 
     console.log("GOOI");
-}
+};
 
 Solarturrets.prototype.setupConnection = function(){
 
     
-}
+};
 

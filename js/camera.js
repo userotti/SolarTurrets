@@ -8,7 +8,7 @@ PIXI.Camera = function()
     this.screen_midy = 0;
 
     
-    this.zoom = 0.75;
+    this.zoom = 0.15;
 
     this.maxzoom = 2.5;
 

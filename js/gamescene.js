@@ -12,7 +12,9 @@ Gamescene = function(stage)
     this.background_layer = new PIXI.SmaatObjectContainer();
     this.colidables_layer = new PIXI.SmaatObjectContainer();
     this.effects_layer = new PIXI.SmaatObjectContainer();
-   
+    
+
+
     this.world.addChild(this.background_layer);
     this.world.addChild(this.colidables_layer);
     this.world.addChild(this.effects_layer);
@@ -24,11 +26,11 @@ Gamescene = function(stage)
     this.turrets = [];
 
     /* Camera setup */
-      
     this.lookat = new PIXI.Point(0,0);
     this.worldclick = new PIXI.Point(0,0);
     this.camera.following =  this.lookat;
-    this.camera.addChild(this.world); 
+    this.camera.addChild(this.world);  
+     
     
 
     /* Hud items */
@@ -71,9 +73,23 @@ Gamescene = function(stage)
 
     /* Build level */
 
-    this.makePlanet(0,0,100,100,0xFFFF0B);
-    this.makeTurret(-500,-30,1,"smaati", true);
+    this.makePlanet(1000,500,5,100,0xeecb0B);
+    this.makePlanet(850,380,1,30,0x34b5a3);
+    this.makePlanet(1200,310,1,30,0x22cdbb);
+    
+    
+    this.makePlanet(200,-500,10,130,0xdedb0B);
+    this.makePlanet(450,-380,2,55,0x34ba57);
+    this.makePlanet(170,-190,1,45,0x55EE83);
+  
 
+    //this.makeTurret(-500,-30,1,"smaati", true);
+
+
+    this.name = null;
+    this.myid = null;
+    
+    this.player=null;
 
 };
 
@@ -86,32 +102,45 @@ Gamescene.prototype.constructor = Gamescene;
 
 
 
-
-
 */
 
-Gamescene.prototype.checkBoundingboxCollision = function(at,tt, dist){
+Gamescene.prototype.checkBoundingboxCollision = function(a,b, dist){
 
     return  !(
-        (at.pos.y+dist < tt.pos.y) ||
-        (at.pos.y-dist > tt.pos.y) ||
-        (at.pos.x-dist > tt.pos.x) ||
-        (at.pos.x+dist < tt.pos.x) )
+        (a.position.y+dist < b.position.y) ||
+        (a.position.y-dist > b.position.y) ||
+        (a.position.x-dist > b.position.x) ||
+        (a.position.x+dist < b.position.x) )
 
 };
 
-Gamescene.prototype.checkBoundingboxCollisionPIXIPoint = function(at,tt, dist){
+Gamescene.prototype.checkBoundingboxCollisionPIXIPoint = function(a,b, dist){
 
     return  !(
-        (at.y+dist < tt.y) ||
-        (at.y-dist > tt.y) ||
-        (at.x-dist > tt.x) ||
-        (at.x+dist < tt.x) )
+        (a.y+dist < b.y) ||
+        (a.y-dist > b.y) ||
+        (a.x-dist > b.x) ||
+        (a.x+dist < b.x) )
 
 };
-Gamescene.prototype.checkDistCollision = function(at,tt,dist){
 
-    if (Math.pow(at.pos.x - tt.pos.x, 2) + Math.pow(at.pos.y - tt.pos.y, 2) < Math.pow(dist, 2)){
+
+Gamescene.prototype.checkBoundingboxCollisionPIXIObject = function(a,b, dist){
+
+    return  !(
+        (a.position.y+dist < b.position.y) ||
+        (a.position.y-dist > b.position.y) ||
+        (a.position.x-dist > b.position.x) ||
+        (a.position.x+dist < b.position.x) )
+
+};
+Gamescene.prototype.checkDistCollision = function(a,b,dist){
+
+    
+    //console.log(Math.sqrt(Math.pow(a.position.x - b.position.x, 2) + Math.pow(a.position.y - b.position.y, 2)));
+
+
+    if (Math.pow(a.position.x - b.position.x, 2) + Math.pow(a.position.y - b.position.y, 2) < Math.pow(dist, 2)){
 
         return true;
 
@@ -158,6 +187,7 @@ Gamescene.prototype.sceneUpdate = function()
         this.updateEffects();
         this.drawAimingHud(this.stage.getMousePosition());
         this.updateWorld();
+        //this.colisionDetection();
         
        /* Update Hud */
         
@@ -190,6 +220,14 @@ Gamescene.prototype.updateWorld = function(){
             this.bullets[i].velx += accx;
             this.bullets[i].vely += accy;            
         
+            if (this.checkDistCollision(this.bullets[i],this.planets[j],this.planets[j].radius)){
+
+                this.bullets[i].alive = false;
+                console.log(this.bullets[i].position.x +": BX - " + this.bullets[i].position.y +": BY - " );
+                console.log(this.planets[j].position.x +": PX - " + this.planets[j].position.y +": PY - " );
+
+
+            }
         }
 
         this.bullets[i].position.x += this.bullets[i].velx; 
@@ -197,12 +235,42 @@ Gamescene.prototype.updateWorld = function(){
 
     }
 
+    for (i = 0; i < this.bullets.length; i++){
+
+        if (this.bullets[i].alive == false){
+
+            this.colidables_layer.removeChild(this.bullets[i]);
+            this.bullets.splice(i,1);
+
+
+        }
+
+    }    
+
+
+}
+
+
+Gamescene.prototype.colisionDetection = function(){
+
+
+    for (j = 0; j < this.planets.length; j++){
+
+        for (i = 0; i < this.bullets.length; i++){
+
+        }
+
+     }    
+
 }
 
 
 Gamescene.prototype.drawAimingHud = function(mousepos){
 
-    this.player_hud = this.worldToHud(this.player);
+    if (this.player != null){
+        this.player_hud = this.worldToHud(this.player);
+    
+    }    
     
     
     switch(this.aiming_mode){
@@ -348,6 +416,11 @@ Gamescene.prototype.setAimingModeOnClick = function(mousepos){
 
 Gamescene.prototype.mouseClick = function(mousepos)
 {
+    console.log(" x: " +mousepos.x + "| y:"+mousepos.y);
+    
+    console.log("w x: " +this.hudToWorld(mousepos).x + "| w y:"+this.hudToWorld(mousepos).y);
+
+
 
     this.setAimingModeOnClick(mousepos);
     
@@ -531,11 +604,27 @@ Gamescene.prototype.setupHud = function(){
         this.fire_button.interactive = true;
         this.fire_button.mousedown = function(data) {
 
-            console.log($('#room').val());
-            console.log(that.session);
-            that.session.publish('com.myapp.'+$('#room').val(), ["","",'chat',""]);
+           /* console.log($('#room').val());
+            console.log(that.session);*/
 
-            that.makeBullet(that.player.position.x,that.player.position.y,that.aimdist/50, that.aimangle, that.playername);
+            publish_details = [{
+                    
+                    "myid":that.player.myid, 
+                    "name":that.player.name, 
+                    "type":"shoot", 
+                    "x":that.player.position.x,
+                    "y":that.player.position.y,
+                    "power":that.aimdist/50,
+                    "angle":that.aimangle
+                        
+                
+                }];
+
+
+            that.session.publish('com.myapp.'+$('#room').val(), publish_details);
+            that.makeBullet(that.player.position.x,that.player.position.y,that.aimdist/80, that.aimangle, that.player.myid);
+
+
 
             that.prev_aimpower_hud_item.setText("prev power: " + Math.round(((that.aimdist/Math.PI)*180)) / 1000);
             that.prev_aimangle_hud_item.setText("prev angle: " + Math.round(((that.aimangle/Math.PI)*180) * 1000) / 1000);
@@ -561,11 +650,14 @@ Gamescene.prototype.setupHud = function(){
 
 */
 
-Gamescene.prototype.makeBullet = function(posx,posy,power,angle,shooter){
+Gamescene.prototype.makeBullet = function(posx,posy,power,angle,shooterid){
 
     bullet = new PIXI.SmaatGraphics();
+    bullet.alive = true;
 
-    bullet.radius = 5;
+    bullet.shooterid = shooterid;
+
+    bullet.radius = 8;
     bullet.mass = 1;
 
     bullet.position.x = posx;
@@ -580,6 +672,7 @@ Gamescene.prototype.makeBullet = function(posx,posy,power,angle,shooter){
     this.colidables_layer.addChild(bullet);
     this.bullets.push(bullet);
 
+    console.log("shooterid" + shooterid);
 
 
 }
@@ -596,40 +689,98 @@ Gamescene.prototype.makePlanet = function(x,y,mass,radius,color){
 
     planet.lineStyle(0);
     planet.beginFill(color, 1);
-    planet.drawCircle(x, y, radius);
+    planet.drawCircle(0, 0, radius);
 
     this.planets.push(planet);
 
+    //console.log("x : " + x + "y : " + y);
     this.colidables_layer.addChild(planet);
 
 }
 
-Gamescene.prototype.makeTurret = function(x,y,type,name,me){
 
-    turret = new PIXI.SmaatGraphics();
+Gamescene.prototype.hasTurret = function(id){
 
-    turret.position.x = x;
-    turret.position.y = y;
-    
-    turret.name = name;
-    turret.me = me;
+   
+    for (i = 0; i < this.turrets.length; i++){
+            
+        if (this.turrets[i].myid == id){
 
-    if (turret.me == true){
+            return i;
 
-        this.player = turret;
-        console.log(this.player.x + "  this.player.x");
+        } 
 
     }
 
-    if (type == 1){
-        turret.lineStyle(0);
-        turret.beginFill(0x555555, 1);
-        turret.drawRect(-25, -25, 50, 50);
-    }  
-
-    this.turrets.push(turret);
-    this.colidables_layer.addChild(turret);
+    return -1;
 
 }
+
+
+Gamescene.prototype.makeTurret = function(myid,name, x,y){
+
+
+    if (myscene.hasTurret(myid) == -1){
+        turret = new PIXI.SmaatGraphics();
+
+        turret.position.x = x;
+        turret.position.y = y;
+        
+        turret.myid = myid;
+        turret.name = name;
+        
+        turret.lineStyle(0);
+        turret.beginFill(0xffcc00, 1);
+        turret.drawRect(-25, -25, 50, 50);
+       
+        
+        this.turrets.push(turret);
+
+
+        
+        this.colidables_layer.addChild(turret);
+    }    
+    console.log(this.turrets.length + "length");
+}
+
+Gamescene.prototype.removeTurret = function(myid,name, x,y){
+
+
+    if (myscene.hasTurret(myid) != -1){
+        
+        this.colidables_layer.removeChild(this.turrets[this.hasTurret(myid)]);
+        this.turrets.splice(this.hasTurret(myid),1);
+    }    
+    console.log(this.turrets.length + "length");
+}
+
+
+Gamescene.prototype.addMyTurret = function(myid, name){
+
+    
+
+        turret = new PIXI.SmaatGraphics();
+
+        turret.position.x = (Math.random() - Math.random())*2000+800;
+        turret.position.y = (Math.random() - Math.random())*2000;
+        
+        
+        turret.myid = myid;
+        turret.name = name;
+        
+            
+        turret.lineStyle(0);
+        turret.beginFill(0x5566ee, 1);
+        turret.drawRect(-25, -25, 50, 50);
+       
+
+        this.player = turret;
+        
+        this.turrets.push(turret);
+        this.colidables_layer.addChild(turret);
+
+
+}
+
 
 
