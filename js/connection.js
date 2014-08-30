@@ -14,6 +14,9 @@ this.connection = new autobahn.Connection({
 
 
 myscene = solarturrets.currentscene;
+
+
+external_session = null;
 /*********************/
 /** OPEN CONNECTION **/
 /*********************/
@@ -28,7 +31,7 @@ onevent = function(args){
             
             console.log("shoot");
 
-            myscene.makeBullet(args[0].x, args[0].y, args[0].power, args[0].angle, args[0].myid);
+            myscene.makeBullet(args[0].x, args[0].y, args[0].power, args[0].angle, args[0].turretradius, args[0].bulletid, args[0].myid);
 
         }
 
@@ -36,10 +39,10 @@ onevent = function(args){
             
             console.log("join");
 
-            myscene.makeTurret(args[0].myid, args[0].name, args[0].x, args[0].y);
+            myscene.makeTurret(args[0].myid, args[0].name, args[0].x, args[0].y, args[0].pause_status, args[0].kills);
 
 
-
+            console.log("join" + myscene.player.paused);
           
             publish_details = [{
                     
@@ -47,34 +50,182 @@ onevent = function(args){
                     "name":myscene.player.name, 
                     "type":"klaarhier", 
                     "x":myscene.player.position.x,
-                    "y":myscene.player.position.y
-                
+                    "y":myscene.player.position.y,
+                    "pause_status" : myscene.player.paused,
+                    "kills" : myscene.player.kills
                 }];
 
-            
-            //console.log("solarturrets.session")
-            //console.log(solarturrets);    
-            solarturrets.currentscene.session.publish('com.myapp.'+solarturrets.room, publish_details)
+             
+            myscene.session.publish('com.myapp.'+solarturrets.room, publish_details)
 
             
         }
 
         if(args[0].type === 'klaarhier'){
             
-                //console.log(myscene.hasTurret(args[0].id));
-                console.log(args[0].name + "klaarhier");   
-
-               // if (myscene.hasTurret(args[0].myid) == -1)
-                myscene.makeTurret(args[0].myid, args[0].name, args[0].x, args[0].y);
+                console.log("klaarhier: " + args[0].pause_status);   
+                myscene.makeTurret(args[0].myid, args[0].name, args[0].x, args[0].y, args[0].pause_status, args[0].kills);
           
             
         }
 
-        if(args[0].type === 'hit'){
-            
-            console.log("hit");
+
+        if(args[0].type == "watpompmetbullets"){
+
+            console.log("watpompmetbullets: paused? : " +myscene.player.paused);
+            if (myscene.player.paused == false){
+
+                
+                for (bul = 0; bul < myscene.bullets.length; bul++){
+
+                    publish_details = [{
+                    
+                    "myid":myscene.player.myid, 
+                    "name":myscene.player.name, 
+                    "type":"newbullets", 
+                    "bulletid" : myscene.bullets[bul].bulletid,
+                    "bshooterid" : myscene.bullets[bul].shooterid,
+                    "bx" : myscene.bullets[bul].position.x,
+                    "by" : myscene.bullets[bul].position.y,
+                    "bvelx" : myscene.bullets[bul].velx, 
+                    "bvely" : myscene.bullets[bul].vely,
+                    "bage" : myscene.bullets[bul].age
+
+
+
+                    }];
+
+                    myscene.session.publish('com.myapp.'+solarturrets.room, publish_details);
+                
+                } 
+                
+
+            }
 
         }
+
+      /*  if (args[0].type == "watpompmetdiescore"){
+
+
+            for (tur = 0; tur < myscene.turrets.length; tur++){
+
+                    publish_details = [{
+                    
+                    "myid":myscene.player.myid, 
+                    "name":myscene.player.name, 
+                    "type":"score", 
+                    "turretid" : myscene.turrets[],
+                    "bshooterid" : myscene.bullets[bul].shooterid,
+                    "bx" : myscene.bullets[bul].position.x,
+                    "by" : myscene.bullets[bul].position.y,
+                    "bvelx" : myscene.bullets[bul].velx, 
+                    "bvely" : myscene.bullets[bul].vely,
+                    "bage" : myscene.bullets[bul].age
+
+
+
+                    }];
+
+                    myscene.session.publish('com.myapp.'+solarturrets.room, publish_details);
+                
+            } 
+
+
+
+        }*/
+
+        if(args[0].type == "newbullets"){
+
+            console.log("newbullets");
+            console.log(args[0].bulletid);
+
+            if (myscene.hasBullet(args[0].bulletid) != -1){
+                
+                myscene.updateBullet(args[0].bulletid, args[0].shooterid, args[0].bx, args[0].by, args[0].bvelx, args[0].bvely, args[0].bage);
+            
+            }else{
+
+
+                myscene.placeNewBullet(args[0].bulletid, args[0].shooterid, args[0].bx, args[0].by, args[0].bvelx, args[0].bvely, args[0].bage);
+            
+            }
+
+
+
+        }    
+
+
+        if(args[0].type === 'kill'){
+            
+            cbulletkillcheck = myscene.hasBullet(args[0].bulletid);
+
+            if (cbulletkillcheck != -1){
+
+                myscene.bullets[cbulletkillcheck].alive = false;
+                
+            }
+
+            shooter_pos = myscene.hasTurret(args[0].shooterid);
+            if (shooter_pos != -1){
+
+
+                if (myscene.turrets[shooter_pos].kills != args[0].shooterkills){
+
+                    myscene.turrets[shooter_pos].kills =  args[0].shooterkills;                   
+
+                }
+
+            }
+
+
+
+            turretkilled_pos = myscene.hasTurret(args[0].turrethitid);
+            
+            if (turretkilled_pos != -1){
+                console.log((args[0].turretdeaths - myscene.turrets[turretkilled_pos].deaths));
+
+                if (myscene.turrets[turretkilled_pos])
+                myscene.turrets[turretkilled_pos].deaths++;
+                
+                if (args[0].turrethitid == myscene.player.myid){
+                    
+
+                    mx =  (Math.random() - Math.random())*2000+800;
+                    my =  (Math.random() - Math.random())*2000;
+
+
+                    publish_details = [{
+                    
+                    "myid":myscene.player.myid, 
+                    "name":myscene.player.name, 
+                    "type":"move", 
+                    "movex":mx,
+                    "movey":my,
+                    "movingturretid":args[0].turrethitid,
+                    "deadbulletid":args[0].bulletid
+                
+                    }];
+
+                     
+                    solarturrets.currentscene.session.publish('com.myapp.'+solarturrets.room, publish_details);
+
+                    console.log("MOVE ME");
+                    myscene.moveTurret(turretkilled_pos, mx, my);
+
+                }
+            }
+        }
+
+        if(args[0].type === 'move'){
+
+            turretmoved_pos = myscene.hasTurret(args[0].movingturretid); 
+
+            if (turretmoved_pos != -1){
+                myscene.moveTurret(turretmoved_pos, args[0].movex, args[0].movey);
+            }    
+            
+        }    
+        
 
         if(args[0].type === 'closewindow'){
             
@@ -85,6 +236,21 @@ onevent = function(args){
 
         }
 
+        if (args[0].type === "pausing"){
+
+            console.log("pausing : " + args[0].myid);
+            myscene.pauseTurret(args[0].myid);
+
+
+        }
+
+        if (args[0].type === "unpausing"){
+
+            console.log("unpausing : " + args[0].myid);
+            myscene.unPauseTurret(args[0].myid);
+
+
+        }
         
 
 }
@@ -93,7 +259,7 @@ onevent = function(args){
 connection.onopen = function (session) {
 
     sessionod = session.id;
-
+    external_session = session;
     solarturrets.setSession(session);
 
     $('#myid').html(session.id);
@@ -141,17 +307,47 @@ connection.onopen = function (session) {
                     "name":myscene.player.name, 
                     "type":"join", 
                     "x":myscene.player.position.x,
-                    "y":myscene.player.position.y
+                    "y":myscene.player.position.y,
+                    "pause_status":myscene.player.paused,
+                    "kills":myscene.player.kills
                 
                 }];
 
                 session.publish('com.myapp.'+solarturrets.room, publish_details)
 
 
+                
+
+
+            
+
             }).then(function(){
                 
-                kickoff();        
+                publish_details = [{
+                        
+                        "myid":myscene.player.myid, 
+                        "name":myscene.player.name, 
+                        "type":"watpompmetbullets", 
+                        
+                    }];
+
+                myscene.session.publish('com.myapp.'+$('#room').val(), publish_details);
+
+                publish_details = [{
+                        
+                        "myid":myscene.player.myid, 
+                        "name":myscene.player.name, 
+                        "type":"watpompmetdiescore", 
+                        
+                    }];
+
+                myscene.session.publish('com.myapp.'+$('#room').val(), publish_details)
+                  
                
+            }).then(function(){
+
+                kickoff();      
+
             });
 
     });
@@ -179,6 +375,85 @@ connection.onopen = function (session) {
     };
 
 
+    window.onkeydown = function(event){
+
+        /*if (myscene.player.paused == false){
+                
+                publish_details = [{
+                    
+                    "myid":myscene.player.myid, 
+                    "name":myscene.player.name, 
+                    "type":"pausing", 
+                    
+                }];
+
+                myscene.session.publish('com.myapp.'+$('#room').val(), publish_details);
+                myscene.player.paused = true;
+
+            }else{
+
+                publish_details = [{
+                    
+                    "myid":myscene.player.myid, 
+                    "name":myscene.player.name, 
+                    "type":"unpausing", 
+                    
+                }];
+
+                myscene.session.publish('com.myapp.'+$('#room').val(), publish_details);
+                myscene.player.paused = false;
+
+
+        }*/
+
+
+    }
+
+    /*
+
+        HIER WERK DINK EK!!!!
+
+    */
+
+
+
+    $(window).focus(function() {
+    
+              
+                //un pause
+
+                if (myscene.player != null){
+                    //myscene.pausedBroadCast();
+                    
+
+                    publish_details = [{
+                        
+                        "myid":myscene.player.myid, 
+                        "name":myscene.player.name, 
+                        "type":"watpompmetbullets", 
+                        
+                    }];
+
+                    myscene.session.publish('com.myapp.'+$('#room').val(), publish_details)
+
+                 }      
+
+        
+
+    });
+
+    $(window).blur(function() {
+                
+                if (myscene.player != null){
+
+                    //myscene.pausedBroadCast();
+                }    
+           
+    });
+
+   
+
+
 };
 
 onclose = function (reason, details) {
@@ -187,9 +462,6 @@ onclose = function (reason, details) {
 
     // connection closed, lost or unable to connect
 };
-
-
-
 
 
 

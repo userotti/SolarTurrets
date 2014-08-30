@@ -24,6 +24,7 @@ Gamescene = function(stage)
     this.planets = [];
     this.bullets = [];
     this.turrets = [];
+    this.score_names = [];
 
     /* Camera setup */
     this.lookat = new PIXI.Point(0,0);
@@ -35,11 +36,19 @@ Gamescene = function(stage)
 
     /* Hud items */
 
+    this.paused = false;
+    this.pause_cover = null;
+
     this.aim = new PIXI.Graphics();
     this.aimangle = 0;
     this.aimdist = 0;
     this.aiming = false;
     this.aiming_mode = 0;
+
+    this.shotpower = 0;
+
+    this.scoreboard = new PIXI.Text("ff", { font: "14px Podkova", fill: "#ffffff", align: "left"});
+    this.hud.addChild(this.scoreboard);
 
     this.aimangle_hud_item = new PIXI.Text("angle: ", { font: "24px Podkova", fill: "#ffffff", align: "left"});
     this.aimpower_hud_item = new PIXI.Text("power: ", { font: "24px Podkova", fill: "#ffffff", align: "left"});
@@ -73,14 +82,14 @@ Gamescene = function(stage)
 
     /* Build level */
 
-    this.makePlanet(1000,500,5,100,0xeecb0B);
-    this.makePlanet(850,380,1,30,0x34b5a3);
-    this.makePlanet(1200,310,1,30,0x22cdbb);
+    this.makePlanet(1200,500,14,100,0xeecb0B);
+    this.makePlanet(1050,380,6,30,0x34b5a3);
+    this.makePlanet(1400,310,6,30,0x22cdbb);
     
     
-    this.makePlanet(200,-500,10,130,0xdedb0B);
-    this.makePlanet(450,-380,2,55,0x34ba57);
-    this.makePlanet(170,-190,1,45,0x55EE83);
+    this.makePlanet(-800,-500,17,130,0xdedb0B);
+    this.makePlanet(-550,-380,6,55,0x34ba57);
+    this.makePlanet(-830,-190,5,45,0x55EE83);
   
 
     //this.makeTurret(-500,-30,1,"smaati", true);
@@ -134,7 +143,7 @@ Gamescene.prototype.checkBoundingboxCollisionPIXIObject = function(a,b, dist){
         (a.position.x+dist < b.position.x) )
 
 };
-Gamescene.prototype.checkDistCollision = function(a,b,dist){
+Gamescene.prototype.checkDistCollisionPIXIObject = function(a,b,dist){
 
     
     //console.log(Math.sqrt(Math.pow(a.position.x - b.position.x, 2) + Math.pow(a.position.y - b.position.y, 2)));
@@ -150,6 +159,22 @@ Gamescene.prototype.checkDistCollision = function(a,b,dist){
     }
 
 };
+
+Gamescene.prototype.twoTierCollisionDetection = function(point, body, radius){
+
+    if (this.checkBoundingboxCollisionPIXIObject(point, body, radius)){
+
+        if (this.checkDistCollisionPIXIObject(point, body, radius)){
+
+            return true;
+
+        }
+
+    }
+
+    return false;
+
+}
 
 Gamescene.prototype.worldToHud = function(point){
 
@@ -183,20 +208,38 @@ Gamescene.prototype.hudToWorld = function(point){
 */
 
 Gamescene.prototype.sceneUpdate = function()
-{
-        this.updateEffects();
-        this.drawAimingHud(this.stage.getMousePosition());
-        this.updateWorld();
-        //this.colisionDetection();
-        
-       /* Update Hud */
-        
-        if (this.aiming_mode == 3){
-            this.fire_button.visible = true;
-        }else{
-            this.fire_button.visible = false;    
-        }        
+{       
+        this.paused = !((this.player.paused == false) && (this.atLeastTwoPlayersUnpaused()));
 
+        if (this.paused){
+
+            
+            this.pause_cover.visible = true;
+
+        }else{
+
+            
+            this.pause_cover.visible = false;
+
+        }
+
+        
+        if (this.paused == false){
+
+            this.updateEffects();
+            this.drawAimingHud(this.stage.getMousePosition());
+            this.updateWorld();
+            //this.colisionDetection();
+            this.updateScoreboard();
+           /* Update Hud */
+            
+                 
+       }
+       if (this.aiming_mode == 3){
+                this.fire_button.visible = true;
+            }else{
+                this.fire_button.visible = false;    
+        }        
 };
 
 Gamescene.prototype.updateWorld = function(){
@@ -204,36 +247,91 @@ Gamescene.prototype.updateWorld = function(){
     
     for (i = 0; i < this.bullets.length; i++){
 
-        accx = 0;
-        accy = 0;
+            this.bullets[i].age++;
+            accx = 0;
+            accy = 0;
 
-        for (j = 0; j < this.planets.length; j++){
+            for (j = 0; j < this.planets.length; j++){
 
-            distsqr = (Math.pow(this.bullets[i].position.x - this.planets[j].position.x,2) +
-                             Math.pow(this.bullets[i].position.y - this.planets[j].position.y,2));
+                distsqr = (Math.pow(this.bullets[i].position.x - this.planets[j].position.x,2) +
+                                 Math.pow(this.bullets[i].position.y - this.planets[j].position.y,2));
 
-            diehoek =  Math.atan2(this.bullets[i].position.y - this.planets[j].position.y, this.bullets[i].position.x - this.planets[j].position.x);
+                diehoek =  Math.atan2(this.bullets[i].position.y - this.planets[j].position.y, this.bullets[i].position.x - this.planets[j].position.x);
 
-            accx += Math.cos(diehoek+Math.PI) * (((this.planets[j].mass * this.bullets[i].mass)*100)/(distsqr)); 
-            accy += Math.sin(diehoek+Math.PI) * (((this.planets[j].mass * this.bullets[i].mass)*100)/(distsqr)); 
+                accx += Math.cos(diehoek+Math.PI) * (((this.planets[j].mass * this.bullets[i].mass)*100)/(distsqr)); 
+                accy += Math.sin(diehoek+Math.PI) * (((this.planets[j].mass * this.bullets[i].mass)*100)/(distsqr)); 
 
-            this.bullets[i].velx += accx;
-            this.bullets[i].vely += accy;            
+                this.bullets[i].velx += accx;
+                this.bullets[i].vely += accy;            
+                
+                //Collision: Bullet --> Planet
+
+                if (this.twoTierCollisionDetection(this.bullets[i],this.planets[j],this.planets[j].radius)){
+
+                    this.bullets[i].alive = false;
+
+                }
+            } // planet for
+      
+            for (j = 0; j < this.turrets.length; j++){
+
+                if (this.twoTierCollisionDetection(this.bullets[i],this.turrets[j],this.turrets[j].radius)){
+                
+                    shooter_id = this.bullets[i].shooterid;
+
+                    shooter_pos = this.hasTurret(shooter_id);
+                    
+                    if (shooter_pos != -1){
+                        this.turrets[shooter_pos].kills++;
+                    } 
+                    
+                    this.bullets[i].alive = false;
+                   
+
+
+
+                    publish_details = [{
+                        
+                        "myid":this.player.myid, 
+                        "name":this.player.name, 
+                        "type":"kill", 
+                        "bulletid": this.bullets[i].bulletid,
+                        "planethit": "no",
+                        "turrethitid": this.turrets[j].myid,
+                        "turretdeaths": this.turrets[j].deaths,
+                        "shooterkills": this.turrets[shooter_pos].kills,
+                        "shooterid" : shooter_id
+                        
+                      
+                    }];
         
-            if (this.checkDistCollision(this.bullets[i],this.planets[j],this.planets[j].radius)){
+                    this.session.publish('com.myapp.'+$('#room').val(), publish_details);
+                    
 
-                this.bullets[i].alive = false;
-                console.log(this.bullets[i].position.x +": BX - " + this.bullets[i].position.y +": BY - " );
-                console.log(this.planets[j].position.x +": PX - " + this.planets[j].position.y +": PY - " );
+                   /* publish_details = [{
+                        
+                        "myid":this.player.myid, 
+                        "name":this.player.name, 
+                        "type":"kill_bullet", 
+                        "bulletid": this.bullets[i].bulletid,
+                        "planethit": "no",
+                        "turrethitid": this.turrets[j].myid,
+                        
+                    }];
+
+                    this.session.publish('com.myapp.'+$('#room').val(), publish_details);*/
 
 
-            }
-        }
+                    
+                   
+                }
+            }//turret for
+        
 
         this.bullets[i].position.x += this.bullets[i].velx; 
         this.bullets[i].position.y += this.bullets[i].vely;
 
-    }
+    } //bullet for
 
     for (i = 0; i < this.bullets.length; i++){
 
@@ -416,11 +514,7 @@ Gamescene.prototype.setAimingModeOnClick = function(mousepos){
 
 Gamescene.prototype.mouseClick = function(mousepos)
 {
-    console.log(" x: " +mousepos.x + "| y:"+mousepos.y);
-    
-    console.log("w x: " +this.hudToWorld(mousepos).x + "| w y:"+this.hudToWorld(mousepos).y);
-
-
+   
 
     this.setAimingModeOnClick(mousepos);
     
@@ -470,7 +564,62 @@ Gamescene.prototype.resizeScene = function(){
 
 
 
+}
+
+Gamescene.prototype.bubbleSort = function(a){
+
+    var swapped;
+        
+
+        do {
+            swapped = false;
+            for (var i = 0; i < a.length - 1; i++) {
+                if (a[i].kills < a[i + 1].kills) {
+                    var temp = a[i];
+                    a[i] = a[i + 1];
+                    a[i + 1] = temp;
+                    swapped = true;
+                }
+            }
+        } while (swapped);
+    
+
+
+}
+
+Gamescene.prototype.sortScores = function(){
+
+    //Deep copy 
+    this.score_names.length = 0;
+    for(sn = 0; sn < this.turrets.length; sn++){
+        this.score_names.push(this.turrets[sn]);
+    }
+
+    //sort
+    this.bubbleSort(this.score_names);
+
 } 
+
+Gamescene.prototype.updateScoreboard = function(){
+
+
+    this.sortScores();
+
+
+    scoreboard_text = "";
+    scoreboard_text = "Scoreboard:" + "\n" + "-------------------" + "\n"
+
+    for(sb = 0; sb < this.score_names.length; sb++){
+
+        scoreboard_text = scoreboard_text  + this.score_names[sb].name + "    " + this.score_names[sb].kills + "\n";
+
+    }
+
+    this.scoreboard.setText(scoreboard_text);
+
+
+}
+
 
 /* Hud setup ----------------
 
@@ -482,7 +631,76 @@ Gamescene.prototype.setupHud = function(){
 
         cam = this.camera;
         lootat = this.lookat;
-        //zoom in button
+
+
+        //Scoreboard
+
+        this.scoreboard.position.x = 60;
+        this.scoreboard.position.y = 20;
+
+
+
+        // pause hud cover
+        
+
+        
+        this.pause_cover =  new PIXI.SmaatGraphics();
+
+        this.pause_cover.buttonMode = true;
+
+       
+        this.pause_cover.position.x = 0;
+        this.pause_cover.position.y = 0;
+
+        this.pause_cover.lineStyle(0);
+        this.pause_cover.beginFill(0xffcc00, 1);
+        this.pause_cover.drawRect(0, 0, window.innerWidth, window.innerHeight);
+
+        this.pause_cover.visible = false;
+
+        
+        pauseTXT1 = new PIXI.Text("PAUSED", { font: "24px Podkova", fill: "#000000", align: "left"});
+
+        pauseTXT1.position.x = 120;
+        pauseTXT1.position.y = 120;
+                
+        pauseTXT2 = new PIXI.Text("More than one player needs to be active.", { font: "17px Podkova", fill: "#000000", align: "left"});
+
+        pauseTXT2.position.x = 120;
+        pauseTXT2.position.y = 160;
+
+
+        this.pause_cover.addChild(pauseTXT1);
+        this.pause_cover.addChild(pauseTXT2);
+            
+        this.hud.addChild(this.pause_cover);
+
+        //pause btn
+/*
+        var button = new PIXI.Sprite.fromImage("images/pausebtn.png");
+        button.buttonMode = true;
+
+        button.anchor.x = 0.5;
+        button.anchor.y = 0.5;
+
+        button.position.x = 90;
+        button.position.y = 30;
+
+        button.interactive = true;
+
+        that = this;
+
+        button.mousedown = function(data) {
+            
+            
+            that.pausedBroadCast();
+
+            
+            
+
+        };
+        this.hud.addChild(button);*/
+
 
         var button = new PIXI.Sprite.fromImage("images/zoomin.png");
         button.buttonMode = true;
@@ -602,11 +820,15 @@ Gamescene.prototype.setupHud = function(){
         this.fire_button.position.x = 100;
         this.fire_button.position.y = window.innerHeight-150;
         this.fire_button.interactive = true;
+
         this.fire_button.mousedown = function(data) {
 
            /* console.log($('#room').val());
             console.log(that.session);*/
+            that.shotpower = that.aimdist/50;
+            new_bulletid = Math.round(Math.random()*1000000);
 
+            console.log("BULLET ID" + new_bulletid);
             publish_details = [{
                     
                     "myid":that.player.myid, 
@@ -614,15 +836,20 @@ Gamescene.prototype.setupHud = function(){
                     "type":"shoot", 
                     "x":that.player.position.x,
                     "y":that.player.position.y,
-                    "power":that.aimdist/50,
-                    "angle":that.aimangle
+                    "power":that.shotpower,
+                    "angle":that.aimangle,
+                    "turretradius": that.player.radius,
+                    "bulletid": new_bulletid
+
                         
                 
                 }];
 
+            //console.log("shooter power:" + publish_details.power);
+    
 
             that.session.publish('com.myapp.'+$('#room').val(), publish_details);
-            that.makeBullet(that.player.position.x,that.player.position.y,that.aimdist/80, that.aimangle, that.player.myid);
+            that.makeBullet(that.player.position.x,that.player.position.y,that.shotpower, that.aimangle, that.player.radius, new_bulletid, that.player.myid);
 
 
 
@@ -650,18 +877,92 @@ Gamescene.prototype.setupHud = function(){
 
 */
 
-Gamescene.prototype.makeBullet = function(posx,posy,power,angle,shooterid){
+
+
+Gamescene.prototype.hasBullet = function(bulletid){
+
+
+   
+    for (i = 0; i < this.bullets.length; i++){
+            
+        if (this.bullets[i].bulletid == bulletid){
+
+            return i;
+
+        } 
+
+    }
+
+    return -1;
+
+}
+
+Gamescene.prototype.placeNewBullet = function(bulletid, shooterid, x, y, velx, vely, age){
 
     bullet = new PIXI.SmaatGraphics();
     bullet.alive = true;
 
     bullet.shooterid = shooterid;
+    bullet.bulletid = bulletid;
 
     bullet.radius = 8;
     bullet.mass = 1;
+    bullet.age = age;
 
-    bullet.position.x = posx;
-    bullet.position.y = posy;
+    bullet.position.x = x;
+    bullet.position.y = y;
+
+    bullet.velx = velx;
+    bullet.vely = vely;
+
+    bullet.beginFill(0xFFFFFF, 1);
+    bullet.drawCircle(0, 0, bullet.radius);
+
+    this.colidables_layer.addChild(bullet);
+    this.bullets.push(bullet);
+}    
+
+
+
+Gamescene.prototype.updateBullet = function(bulletid, shooterid, x, y, velx, vely, age){
+
+    hb = this.hasBullet(bulletid);
+    if (hb != -1){
+
+        /*console.log("my bullet age: " + this.bullets[hb].age);
+        console.log("new age: " + age);*/
+
+
+        if (this.bullets[hb].age < age){
+
+            this.bullets[hb].position.x = x;
+            this.bullets[hb].position.y = y;
+            this.bullets[hb].velx = velx;
+            this.bullets[hb].vely = vely;
+
+        }    
+
+
+    }
+}    
+
+
+Gamescene.prototype.makeBullet = function(posx,posy,power,angle, turretradius, bulletid, shooterid){
+
+    bullet = new PIXI.SmaatGraphics();
+
+
+    bullet.alive = true;
+
+    bullet.shooterid = shooterid;
+    bullet.bulletid = bulletid;
+
+    bullet.radius = 8;
+    bullet.mass = 1;
+    bullet.age = 0;
+
+    bullet.position.x = posx + Math.cos(angle+Math.PI)*(turretradius+1);
+    bullet.position.y = posy + Math.sin(angle+Math.PI)*(turretradius+1);
 
     bullet.velx = (Math.cos(angle+Math.PI)*power);
     bullet.vely = (Math.sin(angle+Math.PI)*power);
@@ -672,8 +973,7 @@ Gamescene.prototype.makeBullet = function(posx,posy,power,angle,shooterid){
     this.colidables_layer.addChild(bullet);
     this.bullets.push(bullet);
 
-    console.log("shooterid" + shooterid);
-
+  
 
 }
 
@@ -699,14 +999,14 @@ Gamescene.prototype.makePlanet = function(x,y,mass,radius,color){
 }
 
 
-Gamescene.prototype.hasTurret = function(id){
+Gamescene.prototype.hasTurret = function(turretid){
 
    
-    for (i = 0; i < this.turrets.length; i++){
+    for (hasi = 0; hasi < this.turrets.length; hasi++){
             
-        if (this.turrets[i].myid == id){
+        if (this.turrets[hasi].myid == turretid){
 
-            return i;
+            return hasi;
 
         } 
 
@@ -715,16 +1015,32 @@ Gamescene.prototype.hasTurret = function(id){
     return -1;
 
 }
+Gamescene.prototype.moveTurret = function(arraypos, x, y){
 
 
-Gamescene.prototype.makeTurret = function(myid,name, x,y){
+    this.turrets[arraypos].position.x = x;
+    this.turrets[arraypos].position.y = y; 
+
+
+}      
+
+Gamescene.prototype.makeTurret = function(myid,name, x,y, paused, kills){
 
 
     if (myscene.hasTurret(myid) == -1){
         turret = new PIXI.SmaatGraphics();
+        turret_name = new PIXI.Text(name, { font: "50px Podkova", fill: "#ffffff", align: "center"});
+
+        turret_name.position.x = -(turret_name.width/2);
+        turret_name.position.y = -100;
 
         turret.position.x = x;
         turret.position.y = y;
+        turret.paused = paused;
+
+        turret.radius = 50;
+        turret.kills = kills;
+        turret.deaths = 0;
         
         turret.myid = myid;
         turret.name = name;
@@ -737,7 +1053,7 @@ Gamescene.prototype.makeTurret = function(myid,name, x,y){
         this.turrets.push(turret);
 
 
-        
+        turret.addChild(turret_name);
         this.colidables_layer.addChild(turret);
     }    
     console.log(this.turrets.length + "length");
@@ -760,9 +1076,20 @@ Gamescene.prototype.addMyTurret = function(myid, name){
     
 
         turret = new PIXI.SmaatGraphics();
+        turret_name = new PIXI.Text(name, { font: "50px Podkova", fill: "#ffffff", align: "middle"});
+
+
+
+        turret.paused = false;
 
         turret.position.x = (Math.random() - Math.random())*2000+800;
         turret.position.y = (Math.random() - Math.random())*2000;
+
+        
+
+        turret.radius = 50;
+        turret.kills = 0;
+        turret.deaths = 0;
         
         
         turret.myid = myid;
@@ -772,12 +1099,110 @@ Gamescene.prototype.addMyTurret = function(myid, name){
         turret.lineStyle(0);
         turret.beginFill(0x5566ee, 1);
         turret.drawRect(-25, -25, 50, 50);
-       
+
+
+        turret_name.position.x = -(turret_name.width/2);
+        turret_name.position.y = -100;
 
         this.player = turret;
         
+
         this.turrets.push(turret);
+        turret.addChild(turret_name);
         this.colidables_layer.addChild(turret);
+
+        
+
+}
+
+Gamescene.prototype.pauseTurret = function(pausing_turret_id){
+
+    t_array_pos = this.hasTurret(pausing_turret_id);
+
+    if (t_array_pos != -1){
+
+
+        this.turrets[t_array_pos].paused = true;
+
+
+    }
+
+
+}
+
+Gamescene.prototype.unPauseTurret = function(pausing_turret_id){
+
+    t_array_pos = this.hasTurret(pausing_turret_id);
+
+    if (t_array_pos != -1){
+
+
+        this.turrets[t_array_pos].paused = false;
+
+
+    }
+
+
+}
+
+Gamescene.prototype.pausedBroadCast = function(){
+
+    if (this.player.paused == false){
+                
+                publish_details = [{
+                    
+                    "myid":this.player.myid, 
+                    "name":this.player.name, 
+                    "type":"pausing", 
+                    
+                }];
+
+                this.session.publish('com.myapp.'+$('#room').val(), publish_details);
+                this.player.paused = true;
+
+    }else{
+
+                publish_details = [{
+                    
+                    "myid":this.player.myid, 
+                    "name":this.player.name, 
+                    "type":"unpausing", 
+                    
+                }];
+
+                this.session.publish('com.myapp.'+$('#room').val(), publish_details);
+                this.player.paused = false;
+
+
+    }
+
+    
+
+}
+
+Gamescene.prototype.atLeastTwoPlayersUnpaused = function(pausing_turret_id){
+
+    
+    paused_turrets_amount = 0;
+
+    for (pi = 0; pi < this.turrets.length; pi++){
+
+        if (this.turrets[pi].paused != true){
+            paused_turrets_amount++;
+        }
+    }
+
+
+
+    if (paused_turrets_amount >= 2){
+        
+        return true;
+
+    }else{
+
+        return false;
+
+    }
 
 
 }
