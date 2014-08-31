@@ -282,7 +282,21 @@ Gamescene.prototype.updateWorld = function(){
                     shooter_pos = this.hasTurret(shooter_id);
                     
                     if (shooter_pos != -1){
-                        this.turrets[shooter_pos].kills++;
+                        
+                        if (this.turrets[j].myid == this.turrets[shooter_pos].myid){
+
+
+                            this.turrets[shooter_pos].kills--;
+
+
+                        }else{
+
+                            this.turrets[shooter_pos].kills++;
+                                
+                        }
+
+
+                        
                     } 
                     
                     this.bullets[i].alive = false;
